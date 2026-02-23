@@ -15,7 +15,7 @@ if uploaded_file is not None:
     tfile = tempfile.NamedTemporaryFile(delete=False)
     tfile.write(uploaded_file.read())
 
-    st.video(uploaded_file)
+    st.video(tfile.name)
 
     st.info("Processing video... This may take some time ⏳")
 
