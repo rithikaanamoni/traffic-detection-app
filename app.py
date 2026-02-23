@@ -1,5 +1,5 @@
 import os
-os.environ["STREAMLIT_WATCHDOG_DISABLE"] = "true"  # Prevent inotify errors
+os.environ["STREAMLIT_WATCHDOG_DISABLE"] = "true"  # Disable inotify errors on Streamlit Cloud
 
 import streamlit as st
 from ultralytics import YOLO
@@ -15,7 +15,6 @@ st.title("🚦 Traffic Density Analysis System")
 uploaded_file = st.file_uploader("Upload Traffic Video", type=["mp4", "avi", "mov"])
 
 if uploaded_file is not None:
-    # Save uploaded file to a temporary location
     tfile = tempfile.NamedTemporaryFile(delete=False)
     tfile.write(uploaded_file.read())
 
@@ -23,7 +22,7 @@ if uploaded_file is not None:
     st.info("Processing video... This may take some time ⏳")
 
     try:
-        model = YOLO("best.pt")  # Load trained YOLO model
+        model = YOLO("best.pt")  # Your trained YOLO model
     except Exception as e:
         st.error(f"Error loading YOLO model: {e}")
         st.stop()
@@ -35,7 +34,7 @@ if uploaded_file is not None:
 
     progress_bar = st.progress(0)
     frame_idx = 0
-    frame_skip = 2  # Skip frames to speed up
+    frame_skip = 2  # Process every 2nd frame
 
     while True:
         ret, frame = cap.read()
@@ -43,7 +42,9 @@ if uploaded_file is not None:
             break
 
         if frame_idx % frame_skip == 0:
+            # Resize frame to reduce memory usage
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_rgb = cv2.resize(frame_rgb, (640, 480))
             results = model.predict(frame_rgb, verbose=False)
             count = sum(len(r.boxes) for r in results)
             frame_counts.append(count)
@@ -57,7 +58,8 @@ if uploaded_file is not None:
     # Segment traffic analysis
     segment_duration = 5  # seconds
     frames_per_segment = int(fps * segment_duration / frame_skip)
-    segments, avg_counts = [], []
+    segments = []
+    avg_counts = []
 
     for i in range(0, len(frame_counts), frames_per_segment):
         segment = frame_counts[i:i + frames_per_segment]
@@ -65,6 +67,7 @@ if uploaded_file is not None:
             continue
 
         avg_counts.append(np.mean(segment))
+
         start_time = i * frame_skip / fps
         end_time = (i + len(segment)) * frame_skip / fps
 
