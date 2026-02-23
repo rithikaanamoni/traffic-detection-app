@@ -1,8 +1,7 @@
 streamlit==1.26.1
 ultralytics==8.4.14
-opencv-python==4.8.0.74
-matplotlib==3.8.0
-pandas==2.1.0
+opencv-python-headless==4.8.1.78  # headless avoids GUI issues on cloud
+matplotlib==3.7.2
+pandas==2.1.2
 numpy>=1.26.1
 pyngrok==7.5.0
-watchdog==3.2.0
