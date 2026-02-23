@@ -6,21 +6,29 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# --- Page config ---
 st.set_page_config(page_title="Traffic Density Analysis", layout="wide")
 st.title("🚦 Traffic Density Analysis System")
 
+# --- Upload video ---
 uploaded_file = st.file_uploader("Upload Traffic Video", type=["mp4", "avi", "mov"])
 
 if uploaded_file is not None:
+    # Save uploaded file temporarily
     tfile = tempfile.NamedTemporaryFile(delete=False)
     tfile.write(uploaded_file.read())
 
     st.video(tfile.name)
-
     st.info("Processing video... This may take some time ⏳")
 
-    model = YOLO("best.pt")  # Your trained YOLO model
+    try:
+        # Load YOLO model (make sure best.pt is in repo root)
+        model = YOLO("best.pt")
+    except Exception as e:
+        st.error(f"Error loading YOLO model: {e}")
+        st.stop()
 
+    # Open video
     cap = cv2.VideoCapture(tfile.name)
     fps = cap.get(cv2.CAP_PROP_FPS)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -36,18 +44,21 @@ if uploaded_file is not None:
             break
 
         if frame_idx % frame_skip == 0:
+            # Convert BGR to RGB for YOLO
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = model.predict(frame_rgb, verbose=False)
+            # Count boxes
             count = sum(len(r.boxes) for r in results)
             frame_counts.append(count)
 
         frame_idx += 1
+        # Update progress bar
         progress_bar.progress(min(frame_idx / total_frames, 1.0))
 
     cap.release()
     st.success("✅ Processing Completed!")
 
-    # Segment traffic analysis
+    # --- Segment analysis ---
     segment_duration = 5  # seconds
     frames_per_segment = int(fps * segment_duration / frame_skip)
     segments = []
@@ -57,21 +68,18 @@ if uploaded_file is not None:
         segment = frame_counts[i:i + frames_per_segment]
         if len(segment) == 0:
             continue
-
         avg_counts.append(np.mean(segment))
-
         start_time = i * frame_skip / fps
         end_time = (i + len(segment)) * frame_skip / fps
-
-        segments.append(f"{int(start_time // 60):02}:{int(start_time % 60):02} - "
-                        f"{int(end_time // 60):02}:{int(end_time % 60):02}")
+        segments.append(f"{int(start_time//60):02}:{int(start_time%60):02} - "
+                        f"{int(end_time//60):02}:{int(end_time%60):02}")
 
     df = pd.DataFrame({
         "time_hms": segments,
         "avg_vehicle_per_frame": avg_counts
     })
 
-    # Traffic level summary
+    # --- Traffic level summary ---
     overall_avg = np.mean(avg_counts)
     if overall_avg < 5:
         level = "Low Traffic"
@@ -84,15 +92,15 @@ if uploaded_file is not None:
     peak_time = segments[peak_index]
     peak_value = avg_counts[peak_index]
 
-    # Display summary
+    # --- Display summary ---
     st.subheader("📊 Traffic Summary")
     st.write(f"**Traffic Level:** {level}")
     st.write(f"**Peak Traffic Time:** {peak_time}")
-    st.write(f"**Peak Vehicle Average:** {round(peak_value, 2)}")
+    st.write(f"**Peak Vehicle Average:** {round(peak_value,2)}")
 
-    # Plot traffic trend
+    # --- Plot traffic trend ---
     st.subheader("📈 Traffic Trend Over Time")
-    fig, ax = plt.subplots(figsize=(12, 5))
+    fig, ax = plt.subplots(figsize=(12,5))
     ax.plot(df["time_hms"], df["avg_vehicle_per_frame"], marker='o', color='blue')
     ax.set_xlabel("Time Segment")
     ax.set_ylabel("Avg Vehicles per Frame")
@@ -101,7 +109,7 @@ if uploaded_file is not None:
     plt.xticks(rotation=45)
     st.pyplot(fig)
 
-    # CSV download
+    # --- CSV download ---
     st.subheader("💾 Download Traffic Data")
     csv = df.to_csv(index=False)
     st.download_button(
