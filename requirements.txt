@@ -1,7 +1,16 @@
+# Streamlit
 streamlit==1.26.1
-ultralytics==8.1.0
-opencv-python-headless==4.8.1.78
-matplotlib==3.7.2
+
+# YOLO
+ultralytics==8.4.14
+
+# OpenCV full version (not headless)
+opencv-python==4.8.1.78
+
+# Data & plotting
+numpy>=1.26.1
 pandas==2.1.2
-numpy==1.26.1
+matplotlib==3.7.2
+
+# Optional for ngrok (if used)
 pyngrok==7.5.0
