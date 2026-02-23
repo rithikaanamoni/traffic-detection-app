@@ -1,9 +1,8 @@
 streamlit==1.26.0
 torch==2.10.0
 torchvision==0.15.1
-numpy
-pandas
-opencv-python
-matplotlib
-Pillow
-scikit-learn
+numpy==1.25.2
+pillow==10.1.0
+opencv-python==4.8.1.78
+matplotlib==3.8.0
+pandas==2.1.1
