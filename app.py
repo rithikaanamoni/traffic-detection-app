@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+st.set_page_config(page_title="Traffic Density Analysis", layout="wide")
 st.title("🚦 Traffic Density Analysis System")
 
 uploaded_file = st.file_uploader("Upload Traffic Video", type=["mp4", "avi", "mov"])
@@ -16,9 +17,9 @@ if uploaded_file is not None:
 
     st.video(uploaded_file)
 
-    st.write("Processing Video... This may take a while ⏳")
+    st.info("Processing video... This may take some time ⏳")
 
-    model = YOLO("best.pt")
+    model = YOLO("best.pt")  # Your trained YOLO model
 
     cap = cv2.VideoCapture(tfile.name)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -44,11 +45,11 @@ if uploaded_file is not None:
         progress_bar.progress(min(frame_idx / total_frames, 1.0))
 
     cap.release()
-    st.success("Processing Completed ✅")
+    st.success("✅ Processing Completed!")
 
+    # Segment traffic analysis
     segment_duration = 5  # seconds
     frames_per_segment = int(fps * segment_duration / frame_skip)
-
     segments = []
     avg_counts = []
 
@@ -70,8 +71,8 @@ if uploaded_file is not None:
         "avg_vehicle_per_frame": avg_counts
     })
 
+    # Traffic level summary
     overall_avg = np.mean(avg_counts)
-
     if overall_avg < 5:
         level = "Low Traffic"
     elif overall_avg < 15:
@@ -83,18 +84,29 @@ if uploaded_file is not None:
     peak_time = segments[peak_index]
     peak_value = avg_counts[peak_index]
 
+    # Display summary
     st.subheader("📊 Traffic Summary")
-    st.write("Traffic Level:", level)
-    st.write("Peak Traffic Time:", peak_time)
-    st.write("Peak Vehicle Average:", round(peak_value, 2))
+    st.write(f"**Traffic Level:** {level}")
+    st.write(f"**Peak Traffic Time:** {peak_time}")
+    st.write(f"**Peak Vehicle Average:** {round(peak_value, 2)}")
 
-    plt.figure(figsize=(12, 5))
-    plt.plot(df["time_hms"], df["avg_vehicle_per_frame"], marker='o')
+    # Plot traffic trend
+    st.subheader("📈 Traffic Trend Over Time")
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.plot(df["time_hms"], df["avg_vehicle_per_frame"], marker='o', color='blue')
+    ax.set_xlabel("Time Segment")
+    ax.set_ylabel("Avg Vehicles per Frame")
+    ax.set_title("Traffic Density Over Time")
+    ax.grid(True)
     plt.xticks(rotation=45)
-    plt.xlabel("Time Segment")
-    plt.ylabel("Avg Vehicles per Frame")
-    plt.title("Traffic Density Over Time")
-    plt.grid(True)
-    plt.tight_layout()
+    st.pyplot(fig)
 
-    st.pyplot(plt.gcf())
+    # CSV download
+    st.subheader("💾 Download Traffic Data")
+    csv = df.to_csv(index=False)
+    st.download_button(
+        label="Download CSV",
+        data=csv,
+        file_name="traffic_analysis.csv",
+        mime="text/csv"
+    )
